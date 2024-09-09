@@ -10,7 +10,7 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::sync::Arc;
 use steamworks::networking_sockets::{InvalidHandle, NetConnection};
 use steamworks::networking_types::{
-    NetConnectionEnd, NetConnectionInfo, NetworkingConnectionState, NetworkingIdentity, SendFlags,
+    AppNetConnectionEnd, NetConnectionEnd, NetConnectionInfo, NetworkingConnectionState, NetworkingIdentity, SendFlags
 };
 use steamworks::{ClientManager, SteamError, SteamId};
 use tracing::info;
@@ -140,7 +140,7 @@ impl NetClient for Client {
 
     fn disconnect(&mut self) -> Result<(), ConnectionError> {
         if let Some(connection) = std::mem::take(&mut self.connection) {
-            connection.close(NetConnectionEnd::AppGeneric, None, false);
+            connection.close(NetConnectionEnd::App(AppNetConnectionEnd::generic_normal()), None, false);
         }
         Ok(())
     }

@@ -9,3 +9,6 @@ members = [
 ]
 default-members = ["lightyear"]
 exclude = ["examples/certificates"]
+
+[patch.crates-io]
+steamworks = { git = "https://github.com/Noxime/steamworks-rs" }
