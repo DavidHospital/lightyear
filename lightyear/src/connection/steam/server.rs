@@ -12,7 +12,7 @@ use std::collections::VecDeque;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use steamworks::networking_sockets::{ListenSocket, NetConnection};
-use steamworks::networking_types::{ListenSocketEvent, NetConnectionEnd, SendFlags};
+use steamworks::networking_types::{AppNetConnectionEnd, ListenSocketEvent, NetConnectionEnd, SendFlags};
 use steamworks::{ClientManager, ServerMode, SteamError};
 use tracing::{error, info};
 
@@ -161,7 +161,7 @@ impl NetServer for Server {
     fn stop(&mut self) -> Result<(), ConnectionError> {
         self.listen_socket = None;
         for (client_id, connection) in self.connections.drain() {
-            let _ = connection.close(NetConnectionEnd::AppGeneric, None, true);
+            let _ = connection.close(NetConnectionEnd::App(AppNetConnectionEnd::generic_normal()), None, true);
             self.new_disconnections.push(client_id);
         }
         info!("Steam socket has been closed.");
@@ -172,7 +172,7 @@ impl NetServer for Server {
         match client_id {
             ClientId::Steam(id) => {
                 if let Some(connection) = self.connections.remove(&client_id) {
-                    let _ = connection.close(NetConnectionEnd::AppGeneric, None, true);
+                    let _ = connection.close(NetConnectionEnd::App(AppNetConnectionEnd::generic_normal()), None, true);
                     self.new_disconnections.push(client_id);
                 }
                 Ok(())
@@ -221,7 +221,7 @@ impl NetServer for Server {
                             event.end_reason()
                         );
                         if let Some(connection) = self.connections.remove(&client_id) {
-                            let _ = connection.close(NetConnectionEnd::AppGeneric, None, true);
+                            let _ = connection.close(NetConnectionEnd::App(AppNetConnectionEnd::generic_normal()), None, true);
                             self.new_disconnections.push(client_id);
                         }
                     } else {
@@ -230,11 +230,11 @@ impl NetServer for Server {
                 }
                 ListenSocketEvent::Connecting(event) => {
                     if self.connections.len() >= self.config.max_clients {
-                        event.reject(NetConnectionEnd::AppGeneric, Some("Too many clients"));
+                        event.reject(NetConnectionEnd::App(AppNetConnectionEnd::generic_normal()), Some("Too many clients"));
                         continue;
                     }
                     let Some(steam_id) = event.remote().steam_id() else {
-                        event.reject(NetConnectionEnd::AppGeneric, Some("Invalid steam id"));
+                        event.reject(NetConnectionEnd::App(AppNetConnectionEnd::generic_normal()), Some("Invalid steam id"));
                         continue;
                     };
                     info!("Client with id: {:?} requesting connection!", steam_id);
@@ -243,7 +243,7 @@ impl NetServer for Server {
                         .connection_request_handler
                         .handle_request(ClientId::Steam(steam_id.raw()))
                     {
-                        event.reject(NetConnectionEnd::AppGeneric, Some("{denied_reason:?}"));
+                        event.reject(NetConnectionEnd::App(AppNetConnectionEnd::generic_normal()), Some("{denied_reason:?}"));
                         continue;
                     } else {
                         if let Err(e) = event.accept() {
